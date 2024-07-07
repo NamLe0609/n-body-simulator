@@ -33,6 +33,7 @@
 
 # Direnv specific
 .envrc
+.direnv
 
 # Vscode stuff
 .vscode
