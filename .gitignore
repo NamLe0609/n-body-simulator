@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Direnv specific
+.envrc
+
+# Vscode stuff
+.vscode
