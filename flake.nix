@@ -29,6 +29,7 @@
               lcov
               vcpkg
               vcpkg-tool
+              gdb
             ] ++ (if system == "aarch64-darwin" then [ ] else [ gdb ]);
           };
       });
