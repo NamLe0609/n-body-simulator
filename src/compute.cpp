@@ -54,15 +54,14 @@ struct ParticleSystem {
         for (int i = 0; i < numOfPart; i++) {
            mass.push_back(weightGen(rng));            
         }
-
     }
 };
 
 int main() {
-    // ParticleSystem<double> psys;
-    // psys.initialize(100);
-    // for (auto i: psys.velocity) {
-    //     std::cout << i.x << ", " << i.y << ", " << i.z << "\n";
-    // } 
-    // return 0;
+    ParticleSystem<double> psys;
+    psys.initialize(100);
+    for (auto i: psys.velocity) {
+        std::cout << i.x << ", " << i.y << ", " << i.z << "\n";
+    } 
+    return 0;
 }

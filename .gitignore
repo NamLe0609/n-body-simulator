@@ -37,4 +37,5 @@
 
 # Vscode stuff
 .vscode
+.cache
 build/
