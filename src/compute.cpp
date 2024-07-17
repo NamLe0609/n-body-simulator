@@ -35,45 +35,9 @@ struct Vec3 {
     }
 };
 
-template <typename T>
-struct ParticleSystem {
-    std::vector<Vec3<T>> position;
-    std::vector<Vec3<T>> velocity;
-    std::vector<T> mass;
-
-    // Holds force on the particle to exploit symmetry 
-    std::vector<Vec3<T>> force;
-
-    void initialize(int numOfPart) {
-        std::random_device rand;
-        std::mt19937 rng(rand());
-        std::uniform_real_distribution<T> weightGen(6.0e23, 600.0e23); 
-        std::uniform_real_distribution<T> vectorGen(1.0, 1000.0);
-
-        position.reserve(static_cast<typename std::vector<Vec3<T>>::size_type>(numOfPart));
-        for (int i = 0; i < numOfPart; i++) {
-           position.push_back(Vec3<T> {vectorGen(rng), vectorGen(rng), vectorGen(rng)});            
-        }
-
-        velocity.reserve(static_cast<typename std::vector<Vec3<T>>::size_type>(numOfPart));
-        for (int i = 0; i < numOfPart; i++) {
-           velocity.push_back(Vec3<T> {vectorGen(rng), vectorGen(rng), vectorGen(rng)});            
-        }
-
-        mass.reserve(static_cast<typename std::vector<T>::size_type>(numOfPart));
-        for (int i = 0; i < numOfPart; i++) {
-           mass.push_back(weightGen(rng));            
-        }
-        
-        force.reserve(static_cast<typename std::vector<Vec3<T>>::size_type>(numOfPart));
-        for (int i = 0; i < numOfPart; i++) {
-           force.push_back(Vec3<T> {0, 0, 0});            
-        }
-    }
-};
 
 template <typename T>
-void resetForces(std::vector<Vec3<T>>& force) {
+void constexpr static resetForces(std::vector<Vec3<T>>& force) {
     for (Vec3<T> vector: force) {
         vector.x = 0;
         vector.y = 0;
@@ -82,10 +46,10 @@ void resetForces(std::vector<Vec3<T>>& force) {
 }
 
 template <typename T>
-void calculateForce(const std::vector<Vec3<T>>& position, const std::vector<T>& mass, std::vector<Vec3<T>>& force) {
-    constexpr static T gconst = 6.67e-11;
-    constexpr static T epsilonSquared = 1e-3 * 1e-3;
-    const std::size_t size = mass.size();
+void constexpr static calculateForce(const std::vector<Vec3<T>>& position, const std::vector<T>& mass, std::vector<Vec3<T>>& force) {
+    constexpr T gconst = 6.67e-11;
+    constexpr T epsilonSquared = 1e-9;
+    const std::size_t size = position.size();
     
     resetForces(force);
 
@@ -106,12 +70,88 @@ void calculateForce(const std::vector<Vec3<T>>& position, const std::vector<T>& 
     }
 }
 
+template <typename T>
+void constexpr static leapfrog(std::vector<Vec3<T>>& position, std::vector<Vec3<T>>& velocity, std::vector<Vec3<T>>& force, const std::vector<T>& mass) {
+    constexpr T timestep = 1e6; 
+    constexpr T timestepHalf = timestep / 2;
+    const std::size_t size = position.size();
+
+    // Velocity half step
+    for (std::size_t i = 0; i < size; i++) {
+       velocity[i] = velocity[i] + force[i] * timestepHalf * (1 / mass[i]); 
+    }
+    
+    // Position next time step
+    for (std::size_t i = 0; i < size; i++) {
+        position[i] = position[i] + velocity[i] * timestep;
+    }
+
+    // Force at next time step
+    calculateForce(position, mass, force);
+
+    // Velocity next time step
+    for (std::size_t i = 0; i < size; i++) {
+       velocity[i] = velocity[i] + force[i] * timestepHalf * (1 / mass[i]); 
+    }
+}
+
+template <typename T>
+struct ParticleSystem {
+    std::vector<Vec3<T>> position;
+    std::vector<Vec3<T>> velocity;
+    std::vector<T> mass;
+
+    // Holds force on the particle to exploit symmetry 
+    std::vector<Vec3<T>> force;
+
+    void initialize(int numOfPart) {
+        std::random_device rand;
+        std::mt19937 rng(rand());
+        std::uniform_real_distribution<T> weightGen(6.0e23, 6.0e25); 
+        std::uniform_real_distribution<T> vectorGen(1.0, 1.0e2);
+
+        position.reserve(static_cast<typename std::vector<Vec3<T>>::size_type>(numOfPart));
+        for (int i = 0; i < numOfPart; i++) {
+           position.push_back(Vec3<T> {vectorGen(rng), vectorGen(rng), vectorGen(rng)});            
+        }
+
+        velocity.reserve(static_cast<typename std::vector<Vec3<T>>::size_type>(numOfPart));
+        for (int i = 0; i < numOfPart; i++) {
+           velocity.push_back(Vec3<T> {vectorGen(rng), vectorGen(rng), vectorGen(rng)});            
+        }
+
+        mass.reserve(static_cast<typename std::vector<T>::size_type>(numOfPart));
+        for (int i = 0; i < numOfPart; i++) {
+           mass.push_back(weightGen(rng));            
+        }
+        
+        force.reserve(static_cast<typename std::vector<Vec3<T>>::size_type>(numOfPart));
+        for (int i = 0; i < numOfPart; i++) {
+           force.push_back(Vec3<T> {0, 0, 0});            
+        }
+        calculateForce(position, mass, force);
+    }
+};
+
 int main() {
     ParticleSystem<double> psys;
-    psys.initialize(100);
-    calculateForce(psys.position, psys.mass, psys.force); 
-    for (auto vec: psys.force) {
+    psys.initialize(2);
+
+    for (auto vec: psys.velocity) {
         std::cout << vec.print() << "\n";
+    }
+    for (auto vec: psys.position) {
+        std::cout << vec.print() << "\n";
+    }
+
+    for (int i = 0; i < 3; i ++) {
+        leapfrog(psys.position, psys.velocity, psys.force, psys.mass); 
+        for (auto vec: psys.velocity) {
+            std::cout << "vel: " << vec.print() << "\n";
+        }
+        for (auto vec: psys.position) {
+            std::cout << "pos: " << vec.print() << "\n";
+        }
     }
     return 0;
 }
